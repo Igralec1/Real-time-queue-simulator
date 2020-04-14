@@ -1,0 +1,104 @@
+import pygame,sys
+import numpy as np
+from barve import * 
+#nastavitve
+max_strank=False
+max_st_strank=4
+st_streznih_mest=1
+povp_cas_prihoda=5
+povp_cas_strezbe=4
+#sys init
+pygame.init() 
+dolzina_okna=720
+visina_okna= 480
+FPS = 30 # Frames per second.
+clock = pygame.time.Clock()
+screen = pygame.display.set_mode((dolzina_okna,visina_okna))
+surf=pygame.Surface((20,20))
+surf.fill(RED)
+ticks=0
+aux=0
+aux2=0
+class stranka:
+    def __init__(self,st_strank):      
+        self.pos=[300-22*st_strank,150]
+        self.cas_prihoda=np.random.exponential(povp_cas_prihoda)
+        self.barva=randcol()
+        self.v_strezbi=False
+class strezno_mesto:
+    def __init__(self):
+        self.pos=[330,150]
+        self.zasedeno=False
+        self.cas_nezasedenosti=0
+        self.stranka=0
+        self.cas_strezbe=np.random.exponential(povp_cas_strezbe)
+        self.t_zasedbe=0
+    def gen_cas_strezbe(self):
+        self.cas_strezbe=np.random.exponential(povp_cas_strezbe)        
+vrsta=[]
+t_prihoda=np.random.exponential(povp_cas_prihoda)
+strezna_mesta=[]
+for  x in range(st_streznih_mest):strezna_mesta.append(strezno_mesto())
+for  x in range(st_streznih_mest):strezna_mesta[x].pos[1]+=40*x
+t=0
+print(t_prihoda)            
+#Main loop
+while True:
+    ticks+=1
+    milisec=clock.tick(FPS)
+    t+=milisec/1000
+    pygame.display.set_caption('t={:.2f}'.format(t))  
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            print(povp_st_strank_v_vrsti)
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_UP:
+                aux2=1
+                print(aux2)
+                ticks=1
+#računanje
+    #prihodi    
+    if t>t_prihoda:
+        vrsta.append(stranka(len(vrsta)))
+        t_prihoda=t+vrsta[-1].cas_prihoda
+        if max_strank==True and len(vrsta)>max_st_strank:vrsta.pop()
+        print(t_prihoda)
+    #odhod v strezbo  
+    if len(vrsta)!=0:
+        for x in range(st_streznih_mest):
+            if strezna_mesta[x].zasedeno==False:
+                strezna_mesta[x].zasedeno=True
+                strezna_mesta[x].t_zasedbe=t
+                strezna_mesta[x].gen_cas_strezbe()
+                strezna_mesta[x].stranka=vrsta[0]
+                vrsta.pop(0)
+                for y in range(len(vrsta)):
+                    vrsta[y].pos[0]+=22
+                if len(vrsta)==0:break
+    #odhod iz strezbe
+    for x in range(st_streznih_mest):
+        if strezna_mesta[x].zasedeno==True:
+            if t>strezna_mesta[x].cas_strezbe+strezna_mesta[x].t_zasedbe:
+                strezna_mesta[x].zasedeno=False
+#analiza
+    if aux2==1:
+        aux+=len(vrsta)
+        povp_st_strank_v_vrsti=aux/ticks
+#risanje
+    #vrsta
+    screen.fill(BLACK)   
+    for y in range(len(vrsta)):
+        surf.fill(vrsta[y].barva)
+        screen.blit(surf,vrsta[y].pos)
+    #strezna mesta
+    for  x in range(st_streznih_mest):
+        pygame.draw.rect(screen,WHITE,(328,148+40*x,24,24),3)
+        if strezna_mesta[x].zasedeno==True:
+            surf.fill(strezna_mesta[x].stranka.barva)
+            screen.blit(surf,strezna_mesta[x].pos)
+    pygame.display.update() 
+
+
