@@ -1,12 +1,18 @@
 import pygame,sys
 import numpy as np
-from barve import * 
+import random
 #nastavitve
-max_strank=False
-max_st_strank=4
-st_streznih_mest=1
-povp_cas_prihoda=5
-povp_cas_strezbe=4
+print( 'vnesi 1/lambda:')
+povp_cas_prihoda=float(input())
+print( 'vnesi 1/mu:')
+povp_cas_strezbe=float(input())
+print( 'vnesi st. streznikov:')
+st_streznih_mest=int(input())
+print( 'ali je st strank v vrsti omejeno: (True,False)')
+max_strank=input()
+if max_strank==True:
+    print( 'vnesi max st strank:')
+    max_st_strank=float(input())
 #sys init
 pygame.init() 
 dolzina_okna=720
@@ -15,26 +21,47 @@ FPS = 30 # Frames per second.
 clock = pygame.time.Clock()
 screen = pygame.display.set_mode((dolzina_okna,visina_okna))
 surf=pygame.Surface((20,20))
+RED = (255, 0, 0)
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+GREEN=(255,255,0)
+def randcol():
+    return(random.randint(0,255),random.randint(0,255),random.randint(0,255))
 surf.fill(RED)
 ticks=0
+count=1
+t_dela=0
+t_nedela=0
 aux=0
-aux2=0
+wq=0
+max_dolzina_vrste=0
+braker=0
+sma=[]
+smacount=0
+rezultati=[]
+rez_t_nedela=[]
+rezdol=[]
+smarez=[]
+qlen=[]
 class stranka:
-    def __init__(self,st_strank):      
+    def __init__(self,st_strank,t):      
         self.pos=[300-22*st_strank,150]
         self.cas_prihoda=np.random.exponential(povp_cas_prihoda)
         self.barva=randcol()
+        self.t_pri_acc=t
         self.v_strezbi=False
 class strezno_mesto:
     def __init__(self):
         self.pos=[330,150]
         self.zasedeno=False
-        self.cas_nezasedenosti=0
+        self.cas_zasedenosti=0
         self.stranka=0
         self.cas_strezbe=np.random.exponential(povp_cas_strezbe)
         self.t_zasedbe=0
+        self.t_sprostitve=0
     def gen_cas_strezbe(self):
-        self.cas_strezbe=np.random.exponential(povp_cas_strezbe)        
+        self.cas_strezbe=np.random.exponential(povp_cas_strezbe)
+        self.cas_zasedenosti+=self.cas_strezbe
 vrsta=[]
 t_prihoda=np.random.exponential(povp_cas_prihoda)
 strezna_mesta=[]
@@ -44,6 +71,7 @@ t=0
 print(t_prihoda)            
 #Main loop
 while True:
+    if braker==1:break
     ticks+=1
     milisec=clock.tick(FPS)
     t+=milisec/1000
@@ -53,19 +81,16 @@ while True:
             pygame.quit()
             sys.exit()
         if event.type == pygame.MOUSEBUTTONDOWN:
-            print(povp_st_strank_v_vrsti)
+            braker=1
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
-                aux2=1
-                print(aux2)
-                ticks=1
-#računanje
+                pass
+ #računanje
     #prihodi    
     if t>t_prihoda:
-        vrsta.append(stranka(len(vrsta)))
+        vrsta.append(stranka(len(vrsta),t))
         t_prihoda=t+vrsta[-1].cas_prihoda
         if max_strank==True and len(vrsta)>max_st_strank:vrsta.pop()
-        print(t_prihoda)
     #odhod v strezbo  
     if len(vrsta)!=0:
         for x in range(st_streznih_mest):
@@ -82,12 +107,25 @@ while True:
     for x in range(st_streznih_mest):
         if strezna_mesta[x].zasedeno==True:
             if t>strezna_mesta[x].cas_strezbe+strezna_mesta[x].t_zasedbe:
-                strezna_mesta[x].zasedeno=False
-#analiza
-    if aux2==1:
-        aux+=len(vrsta)
-        povp_st_strank_v_vrsti=aux/ticks
-#risanje
+                strezna_mesta[x].zasedeno=False              
+ #analiza
+    # max dolžina vrste
+    if max_dolzina_vrste<len(vrsta):max_dolzina_vrste=len(vrsta)       
+    # povprečna dolina vrste        
+    aux+=len(vrsta)
+    povp_dolžina_vrste=aux/count
+    rezdol.append(len(vrsta))
+    rezultati.append(povp_dolžina_vrste)
+    count+=1
+ #SMA
+    if smacount<600:
+        sma.append(len(vrsta))
+        smacount+=1
+    else:
+        sma.append(len(vrsta))
+        sma.pop(0)
+        smarez.append((sum(sma))/600)
+ #risanje
     #vrsta
     screen.fill(BLACK)   
     for y in range(len(vrsta)):
@@ -99,6 +137,20 @@ while True:
         if strezna_mesta[x].zasedeno==True:
             surf.fill(strezna_mesta[x].stranka.barva)
             screen.blit(surf,strezna_mesta[x].pos)
-    pygame.display.update() 
+    pygame.display.update()
+    rez_t_nedela.append((t-strezna_mesta[0].cas_zasedenosti)/t)
+#analiza2
+ #t nedela
+for  x in range(st_streznih_mest):t_dela+=strezna_mesta[x].cas_zasedenosti
+t_nedela=t*st_streznih_mest-t_dela
+#graf
+print('cas prazna strnika',t_nedela)
+print('delez časa praznega strežnika',t_nedela/(t*st_streznih_mest))
+print('count',count)
+print('wq',wq/t)
+print('dolžia vrste',max_dolzina_vrste)
+pygame.quit()
+sys.exit()
+
 
 
